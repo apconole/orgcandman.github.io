@@ -38,7 +38,7 @@ image: none.jpg
       </ol>
       <p>This means that in our example above, we're currently pointing to offset 8. Going back 8 bytes then should get us to the ptr to the callee address frame.</p>
       <p>So, lets write a quick 'n dirty test function, and use gdb to check on the results.</p>
-      <code>
+      <pre>
 int backtrace_test(int nFrameParameterOffset)
 {
 unsigned char *pStackPtr = (unsigned char *)&nFrameParameterOffset;
@@ -55,7 +55,7 @@ int main()
 {
 return backtrace_test(1234);
 }
-      </code>
+      </pre>
       <p>Compile with: <i>gcc -g -o backtrace_test backtrace_test.c</i></p>
       <p>Running this produces the following:</p>
       <pre>aconole@linuxws220 /localhome/aconole/bt-test
@@ -102,7 +102,7 @@ End of assembler dump.
       </pre>
       <p>Success! *0x80483b7* is the bolded line. It's the return address inside foo!</p>
       <p>We know two things now: Following the return register back will give us all the frames (until we hit frame 0), and 4 bytes after the callee ptr, the link register gives us the program counter for the frame. Let's write a stack dumper function which will give us a simple stack trace:</p>
-      <code>
+      <pre>
 unsigned int *dumpAllFrames(unsigned int nFramesMax)
 {
 unsigned char *pStackAddrPtr = (unsigned char *)&nFramesMax;
@@ -122,7 +122,7 @@ nFramesMax--;
 
 return pFramePointer;
 }
-      </code>
+      </pre>
       <p>and call that from within backtrace_test.</p>
       <p>The results:</p>
       <pre>
