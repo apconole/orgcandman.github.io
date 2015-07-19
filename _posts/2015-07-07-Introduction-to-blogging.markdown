@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Introduction to blogging
+title: Introduction to github blogging
 category: Blogging
 tags: blog blogging git github
 year: 2015
