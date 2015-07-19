@@ -1,13 +1,13 @@
 ---
 layout: post
-title: I'm swamped
+title: Parallel Phased Processing
 category: Life
 tags: parallel algorithm state machine
 year: 2012
 month: 06
 day: 29
 published: true
-summary: Musings on life now
+summary: Describe a method for doing parallel work
 image: none.jpg
 ---
 
