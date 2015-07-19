@@ -15,6 +15,7 @@ image: none.jpg
    <div class="span9 columns">
       <h2>Preface</h2>
       <p>This is my first attempt at using github with jekyll integration. My guess is that the example I followed (from <a href="https://github.com/erjjones/erjjones.github.com/">Eric Jones</a>) is great, and that if anything is broken here it's because I messed it up.</p>
+      <p><b>Update</b>: I'm going to back-port all of my older blogspot posts to this format and then start trying to get better at keeping up with this.</p>
    </div>
 </div>
 
