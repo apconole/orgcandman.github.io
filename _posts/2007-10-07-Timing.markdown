@@ -1,0 +1,25 @@
+---
+layout: post
+title: Timing
+category: Programming
+tags: posix timers programming
+year: 2007
+month: 10
+day: 07
+published: true
+summary: Timing
+image: none.jpg
+---
+
+<div class="row">
+    <div class="span9 columns">
+        <h2>Timing</h2>
+        <p>It's funny how timing is important in all aspects of life. For instance, had our parents copulated a day later or earlier than our conception, we'd never be around. If we had changed our alarm clocks by 15 minutes, perhaps we'd end up jumping in front of a bus to save a little boy (yes, that was a Will Ferrel reference).</p>
+        <p>With that in mind, I've been thinking about the two different mechanisms available for timing in user-space applications. The first is, of course, the posix and related family of signal based timers which operating systems provide. These timers have some key advantages. Firstly, the expiry time is usually very accurate. However, it has drawbacks.</p>
+        <p>The biggest drawback is the context within which timers are processed. The signal context is an interrupt to the process, but is unable to be interrupted. This means that while in the timer context, you lose other signals (posix queue signals) and potentially drop a lot of information. Secondly, your application backtrace will be interrupted with a signal. If there is a crash in the timer code you'll have a confusing mess on your hands.</p>
+        <p>The second way of timers is a separate thread which does polling. The granularity on this brand of timers is much worse. A timer which is set to fire every 5 milli-seconds may have to wait for 12 or 13 ms mark before it can fire. In a system where every milli-second is critical (nuclear power plant controller, perhaps) waiting for 12 of them is a lifetime.</p>
+        <p>This random musing was inspired by the following question on LQ:</p>
+        <em>Hi I don't understand how this isn't working correctly...I'm running Linux Kernel 2.6.9. What's happening is that as soon as I call the timer_settime function it immediately triggers the signal handler. No matter how big I set the time.</em>
+        <p>I suggest we read the manpages :)</p>
+    </div>
+</div>
