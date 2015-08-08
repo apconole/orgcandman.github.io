@@ -21,7 +21,7 @@ image: none.jpg
       <p>So, for the first part, it's pretty easy - make an API like so:</p>
       <code>int32_t runParallelWork(work_item_t &wi);</code>
       <p>Each thread looks like a loop with code that looks like the following:</p>
-      <pre>
+      <pre class="prettyprint">
 void threadEntry(*arg)
 {
     while(arg->work_ready)
@@ -46,7 +46,7 @@ void threadEntry(*arg)
           <li>Third, wait until the counter value is equal to <b>S</b> <b>times</b> <b>N</b> <b>+</b> <b>C</b>.</li>
       </ol>
       <p>So, the loop would look something like:</p>
-      <pre>
+      <pre class="prettyprint">
 {
     phase1();
     atomic_inc_phase_counter();
@@ -60,7 +60,7 @@ void threadEntry(*arg)
       <p>This means that, for instance, when the threads have progressed to phase 2, they will all do so at once. Since the phases are generally multiplicative they won't collide mathematically with another phase. The yields are wait points (meaning we are not <i>Wait-Free</i>, but I'd figure that would be obvious since threads do need to wait for others to catch up).</p>
       <p>While the non-special points might be understandable, what the heck is <b>C</b>?</p>
       <p>There may be actions that only a single thread can undertake. This requires an operation called <u>atomic_barrier_cmpxchg</u>, which will allow a single thread to obtain the critical section 'lock', and let the other threads skip the work required. That means something like:</p>
-      <pre>
+      <pre class="prettyprint">
 {
     if(X+1 == atomic_barrier_cmpxchg(phase_counter, X, X+1))
     {
