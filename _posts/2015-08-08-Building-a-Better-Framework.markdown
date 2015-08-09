@@ -53,6 +53,25 @@ registerCommand("otherFirst command", {"this is another firs token", "this is th
       <p>Notice that when I go to add a command it's very easy: write my function, determine the 'syntax' to invoke it, and register it. Because it's so easy to write CLIs, I'm more inclined to do so. After all, if dumping a bit of extra debug data involves a function call and writing the function to dump the data, that's a bit better than trying to figure out where and how I should be inserting each individual token.</p>
       <p>There is a dark side to this approach as well. Because it is so easy to add an arbitrary 'syntax path' to a command, developers can be tempted to add things willy nilly so that there can be multiple sets of commands that look similar but do wildly different things. That can lead to confusion. As an example, imagine:<ul><li>'system show current temperatures'</li><li>'show system running tasks'</li></ul></p>
       <p>Tab completion becomes a nightmare. Contextual help gets confusing. CLI users no longer know what to start typing. That results from inconsistency inherent with multiple developers. There are ways of trying to mitigate that - after all we could fix the roots of all commands, or have the framework scan for tokens appearing in inconsistent places. However, I prefer using code review and the human element for that particular problem. After all, it's a framework <u>for</u> humans, right?</p>
+      <p>So, what did I do in C++ to fix this particular deficiency? Made an abstraction which I believe made sense. See below for the definition:</p>
+      <pre class="prettyprint">
+class Interface
+{
+public:
+    typedef std::shared_ptr<Interface> pointer;
+
+    Interface(){}
+    virtual ~Interface(){}
+    virtual const char *CommandString() const = 0;
+    virtual int ContextualHelp(std::ostream &, const int tokenId) const = 0;
+    virtual int Execute(std::ostream &, std::istream &, const Parameters &) = 0;
+};
+//...
+//Adding a command
+//
+CommandDirectory :: Add( Interface::pointer(new SomeInterface), CONTEXT_INFO );
+      </pre>
+      <p>With the above definition, I can actually use <code>execinfo.h</code>'s type naming API to take the interface, and even expose it from the command directory over SOAP. Having the CommandString() specify all the parameters which are varying and non-varying means we can have human readable text parsed on the command line interface, while having the variable parameters being formatted as inputs over the SOAP (or REST) interfaces.</p>
    </div>
 </div>
 
