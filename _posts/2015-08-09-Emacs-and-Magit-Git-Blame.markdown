@@ -20,7 +20,7 @@ image: none.jpg
    <p>Occasionally, while developing, it's common to encounter bugs (GASP!), and when they crop up, it's likely that code in question will need to change. However, it's always good to understand <i>what</i> the code was actually intended to fix, rather than just killing it outright.</p>
    <p>Enter <code>git blame</code>, which shows who last worked on the line in question and allows picking out the exact commit which introduced the problem. Getting to that commit can be very insightful and allows asking the original authors whether a particular change has other implications which aren't immediately obvious. As such, I use magit-blame-mode quite frequently, and have made the above described emacs lisp function to facilitate easier viewing.</p>
    <p>The code itself is small, so I'll republish it here in case you don't want to use my .emacs stuff:</p>
-   <pre class="prettyprint lang-scm">
+   <pre class="prettyprint lang-lisp">
 ;; Magit-blame in other window of current buffer
 (defun magit-blame-other-window ()
   "Opens a new window from the current buffer filename and runs magit-blame on 
