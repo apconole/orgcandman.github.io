@@ -1,0 +1,23 @@
+---
+layout: post
+title: GPG Preset Passphrases (or say goodbye to pinentry in scripts)
+category: Scripting
+tags: pgp gpg scripting programming
+year: 2015
+month: 10
+day: 22
+published: true
+summary: Using scripts and gpg keys
+image: none.jpg
+---
+
+<div class="row">
+   <div class="span9 columns">
+      <h2>A long time ago</h2>
+      <p>I used to maintain the build server at Azimuth Systems. You can probably see a theme here (I did the build services, I did the CI, I wrote the code, I designed things...). One of the things I used to keep my day-to-day operations easier is the Debian package manager. The .deb format is pretty simple, and the tools are fairly well documented. So, whenever we wanted to release, we'd click a button on the build machine and voila a new .deb would appear for inclusion in our repositories.</p>
+      <p>However, it wouldn't automatically be included. For this task, you see, requires a PGP signature. And I figured it was going to be impossible to get the signature done from a script. After all, the only pinentry programs were gtk, ncurses. Additionally, it doesn't make sense - the whole point of PGP is that someone <i>explicitly</i> says "This is good stuff, lets sign it!" I wanted to violate that, so of course I expected it would be a major PITA.</p>
+      <p>However, while researching how the gpg-agent and pinentry programs interacted, I found (buried in the code) PRESET_PASSPHRASE. This sweet little command (sent over, say, gpg-agent-connect) sets the secret phrase associated with a key. This means that when it gets autorequested (by Jenkins, for instance) there's no need for gpg-agent to call the pinentry assistant.</p>
+      <p>And it turns out, that feature comes in really handy for a lot of other scriptable use cases (including auto-encrypted maildir on your imap folder). There's even a full bit of documentation at <a href="https://www.gnupg.org/documentation/manuals/gnupg/Agent-PRESET_005fPASSPHRASE.html">the GNU Privacy Guard</a> documentation page.</p>
+   </div>
+</div>
+
