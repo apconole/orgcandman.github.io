@@ -1,0 +1,83 @@
+---
+layout: post
+title: Lock-free Queueing (Special Case)
+category: Programming
+tags: programming concurrency lock-free
+year: 2015
+month: 11
+day: 28
+published: true
+summary: Implementation of a special case lock free queue
+image: none.jpg
+---
+
+<div class="row">
+   <div class="span9 columns">
+   <h2>Another time long since past...</h2>
+   <p>In 2010, I worked as a senior software engineer on the platforms, systems, and networking components of the Sycamore IQStream product. I was tasked with ensuring that the applications software would run in our ATCA chassis, as well as a NEBS compliant 1U rack-mount intel box. That meant I spent a lot of time looking at performance, and compatibility; I learned quite a bit about 'undefined behavior' and deep-diving into assembly.</p>
+   <p>Towards the end of the year, we started noticing a performance issue in one of the applications. The Control Plane Monitor Daemon was not processing nearly enough calls, and worse - it used entirely too much CPU and memory. In December, I was told to start looking at the CPMd (which we had outsourced to a company I will keep unnamed) and try to find any obvious problems.</p>
+   <p>The first thing I wanted to do was to profile the code (after all, there's nothing like actually measuring the code to find the <i>actual</i> hotspots). However, at the time the MIPS system we ran on didn't support oprofile (or valgrind), and trying to compile under x86 revealed that the code heavily neutered itself under intel (it was calling mips primitives directly). I didn't want to spend the time to make it work 'correctly' under intel, so I rigged up an app that would spit out the program counters (kernel and application) from procfs (/proc/PID/stat), and look up the function that corresponded.</p>
+   <p>The first time I ran it, I found something crazy - the system spent a lot of time in pthread_mutex_lock/pthread_mutex_unlock calls. Yet, it was consuming between 35% and 75% of the CPU cycles (aside: we were using 15 of the 16 cavium octeon cores for this application... it could probably have been done with 4 threads instead of about 20). I couldn't believe the results, so I lost a week waiting for another engineer to run their own instrumented code.</p>
+   <p>The good news: I wasn't crazy and the other engineer's experiment showed that we used a TON of time waiting for locking to resolve. And it was in two paths - memory allocations and message queueing.</p>
+   <p>The bad news: how do we explain (and ultimately correct) the behavior? It turned out, under realtime linux all mutexes (futexes under linux) are spinlocks under the hood (in contrast with non-realtime linux). That explains the large percentage of CPU usage. Our only option, then, was to eliminate the locking from both the allocator and the queueing.</p>
+   <p>So, we had two fronts of attack: <b>TCMalloc</b> and implementing a lock-free queue. Both would require MIPS atomic primitives, so we got to work writing those first. And when we had a working set, the other engineer started on porting TCMalloc (we later posted the patch for this, but couldn't get Sycamore to sign the legal release for the code, so someone had to reimplement).</p>
+   <p>However, just hooking TCMalloc up didn't improve the situation. Well, for the time spent in allocation it made a huge improvement. We went from a 20 microsecond average (with a 300ms worst case) to a 50ns average with a 20us worst case. The reason TCMalloc didn't change the external cpu utilization observation: we simply pushed all of the locking into the queues.</p>
+   <p>So, I started to implement the reference implementation for a generic lock-free queue. But I had an epiphany when I started writing it - atomic operations are <i>terrible</i> in the fast-path. They're slow, since they have to invoke cache sync protocols. I wanted to write a lock free queue that would be the fastest it could be, and I was sure that the 'generic' was not going to cut it.</p>
+   <p>I thought about what was actually required of the queue. There were lots of producers but only a single consumer. The queues were for realtime packet processing, so I didn't want them unbounded (that's an entry for another day). Thinking about it, I figured a ring buffer with 'head' that could be adjusted by multiple threads would work for the producer side. The 'tail' didn't need any atomic primitives at all since it was only for a single thread. And the whole thing could be done with just a few simple atomic operations.</p>
+   <p>Okay, so you want code? Sure, here's an approximation of the code:</p>
+   <pre class="prettyprint">
+result enq(void *q, void *d)
+{
+   if (count(q) >= max(q))
+      return RESULT_FULL;
+   slot = INC(q->head_pos);
+   if (count(q) > max(q)) {
+      DEC(q->head_pos) // there's a subtle bug here, but
+                       // the real code slightly more complicated, so
+                       // deal with the simple *design* bug (you only get M-1
+                       // slots where M is the producers). Unless you have
+                       // lots of producers this won't matter
+      return RESULT_FULL;
+   }
+   id = slot % max(q); // here if you make max(q) always a power of two, you
+                       // can do & (max(q) - 1) instead of % max(q)
+
+   // this resolves the case where producer + consumer simultaneously
+   // operate on the same slot
+   while(q->array[id].reference) {
+      read_barrier(); // paired with the write in deq
+      sched_yield();
+   }
+
+   q->array[id].data = d;
+   INC(q->array[id].reference);
+   write_barrier(); // paired with the read in deq - NOTE: INC may be a
+                    // barrier on your system. If so this is superfluous
+   return SUCCESS;
+}
+
+result deq(void *q, void **node)
+{
+   pos = q->tail++;
+   pos = pos % max(q); // note: didn't mention this, but q->tail needs to be
+                       // adjusted back, unless max(q) is a power of 2
+                       // (notice a trend? powers of two are good :)
+
+   if(!q->array[pos].reference) {
+      --q->tail;
+      return EMPTY;
+   }
+
+   *node = q->array[pos].data;
+   read_barrier();
+   DEC(q->array[pos].reference); // on your system... see above
+   write_barrier();
+}
+   </pre>
+   <p>The code should be somewhat explanatory, but in case you have a problem reading it I'll write a bit more. First the <i>deq</i> side (which stands for dequeue). It's very straight-forward. We have a tail pointer, increment it along, and get the data. Not much to sync, just the reference, which is the flag to say that data is available.</p>
+   <p>The <i>enc</i> side is more interesting. We have an early check to see if there is space, then a head position reservation, followed by another check for overflow. In this pseudo code, there exists a bug when #producers = #processors = #slots. This can be solved, but that trick is protected, so I can't reveal it (I can talk about this, though, so at least that's good). Anyway after that, we ensure that the reference indicates the flag is free. You'll notice barriers stuck in there which are actual memory barriers (as opposed to just compiler or 'soft' barriers).</p>
+   <p>After that, we assign and indicate that data is available. I put a <pre>write_barrier()</pre> call in that I didn't use since on both MIPS and Intel the atomic INC/DEC instructions act as full barriers, but not all systems may behave this way.</p>
+   <p>When we plumbed this queue in, with TCMalloc, and fired it off we saw an amazing thing: the average CPU Utilization dropped to 2% on all cores. And the worst-case went to 18%. And we processed <b>every</b> call that came through (previously, we only processed around 40% of the calls). By eliminating the locks, we eliminated the wasteful 'sync' times in the system and improved overall throughput (both from a forward-progress standpoint and from a processed packets standpoint).</p>
+   <p>Oh, your last question might be "Did you ever use the reference implementation?" The answer is yes. Average utilization was 9% and worst case was 28%. So worse performance, but more flexibility. In the end, we didn't need the flexibility, so we went with the LFQ.</p>
+   </div>
+</div>
