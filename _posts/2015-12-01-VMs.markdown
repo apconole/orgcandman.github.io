@@ -1,0 +1,90 @@
+---
+layout: post
+title: 101 VMs, Open vSwitch, and YOU
+category: configuration
+tags: vm virtual machines
+year: 2015
+month: 12
+day: 01
+published: true
+summary: Setting up and deploying 101 linux server VMs, and interconnecting them via Open vSwitch.
+image: none.jpg
+---
+
+<div class="row">
+   <div class="span9 columns">
+   <h2>So, there's this bug, right?</h2>
+   <p>On October 23, 2015, Joe Talerico posted a bug to the OVS mailing list (<a href="http://openvswitch.org/pipermail/discuss/2015-October/019163.html">here</a>) describing a problem using the recirc actions over a balance-tcp bond link with 100 VMs.</p>
+   <p>100 VMs happens to be quite a few; I wanted to replicate and fix this ovs issue. First, because having 100 VMs running and doing things is way cool. Second, because I want to fix issues in OVS (I'm nice like that). It sounds daunting enough, but turns out getting to 100VMs all interconnected with OVS is much simpler than it looks on paper.</p>
+   <p>For this task, you will need:<ol><li>A linux server with at least 12 cores (I had 24), 40G of memory, and 200G of free HDD space</li><li>Open vSwitch v. 2.4.0 at least</li><li>libvirt and qemu-kvm</li><li>oz-install</li></ol></p>
+   <p>Okay, step one, get honkin' hardware box. I cannot point you to a download site for this one. Fire up your browser, and head to <a href="http://www.google.com">the great beast</a> to find a suitable box. I used an 
+       <a href="http://accessories.us.dell.com/sna/productdetail.aspx?c=us&l=en&s=&cs=04&sku=338-BGMY&dgc=ST&cid=293344&lid=5616479&acd=12309152537461010&ven1=sE1inYhPj&ven2=,">Intel Xeon E5-2690 v3</a>. Did I mention I love my job? :D</p>
+   <p>Now, ensure that you have openvswitch. If you're on RHEL/Centos/Fedora, you'll want to use <code>yum install openvswitch</code>, and if you're on debian/ubuntu you'll want to use <code>apt-get install openvswitch</code>. Beware, though, you may be using an ancient openvswitch (Ubuntu 12.04LTS is using 1.4.6, egads!). If that happens to be true for you, nothing beats cloning upstream, checking out branch-2.4, and building ('./boot.sh && ./configure && make && make install').</p>
+   <p>With Open vSwitch installed, turn your attention to uuid and qemu-kvm. Again, we're going to apt-get/yum install these things (qemu-kvm and uuid on both, libvirt on RHEL/Centos/Fedora, and libvirt-bin on Debian/Ubuntu). I don't use 'ubuntu-vm-builder,' nor do I use the libvirt manager to setup the VMs.</p>
+   <p>Instead, we'll go to the land of oz. Get a clone of <a href="https://github.com/clalancette/oz">https://github.com/clalancette/oz</a> (<code>git clone https://github.com/clalancette/oz</code>), and either run 'make rpm' or 'make deb'. Following the bouncing prompts to ensure that your full system dependencies are installed, and you are almost ready.</p>
+   <p>When you've got the above satisfied, you'll want to write up a TDL of the VM image you're going to build. 'oz' supports Fedora, so that's what I'm going to use. It also supports Ubuntu, CentOS, etc. So feel free to use whatever your heart desires. The important thing is the TDL, so here's mine:</p>
+   <pre>
+<template>
+  <name>fedora-guest</name>
+  <description>Fedora - 64-bit</description>
+  <os>
+    <name>Fedora</name>
+    <version>23</version>
+    <arch>x86_64</arch>
+    <rootpw>ROOTPW</rootpw>
+    <install type="iso">
+        <iso>http://dl.fedoraproject.org/pub/fedora/linux/releases/23/Server/x86_64/iso/Fedora-Server-DVD-x86_64-23.iso</iso>
+    </install>
+  </os>
+  <description>Fedora 23 guest (server base)</description>
+</template>
+   </pre>
+   <p>In this example, I'm using ROOTPW as my root password, and Fedora 23 Server as the base distro. Feel free to customize the passwords (and distribution), but YMMV.</p>
+   <p>Now, I will run <code>oz-install -d3 fedora-23.tdl -x /tmp/fedora-guest.txml</code>. This does the install. Over the network. So get some coffee, tea, liquor, or whatever you desire. Do a jig. Take up salsa dancing. You've got some time to pass.</p>
+   <p>After glaciers melt, you should be left with a <i>fedora-guest.txml</i> in the current working directory, and <i>fedora-guest.dsk</i> file in <b>/var/lib/libvirt/images/</b>. Run <code>mkdir -p /home/100vms</code> and change to that directory.</p>
+   <p>You need to setup 100 Fedora-guest xml files, and have 100 unique disks. We won't put them in /var (because I have a separate /home partition for this), we'll put them in CWD (which should be <i>/home/100vms</i>, right?) and fix them up. The following snippet of code will set up each VM to run on port Open vSwitch bridge ovsbr0 (change the flavor, etc).</p>
+   <pre class="prettyprint">
+#!/bin/sh
+for I in $(seq 0 99)
+do
+   # Copy the bare image and control
+   cp /tmp/fedora-guest.txml fedora-guest-${I}.xml
+   cp /var/lib/libvirt/images/fedora-guest.dsk fedora-guest-${I}.dsk
+
+   # setup a name
+   sed -i s@fedora-guest@fedora-guest-${I}@g fedora-guest-${I}.xml
+
+   # If a macaddress field is configured, remove it
+   sed -i 's@<mac address=".*"/>@@g' fedora-guest-${I}.xml
+
+   # Set a new UUID for this VM
+   UNIQID=$(uuid)
+   sed -i s@uuid\>[a-zA-Z0-9-]*\<\/uuid@uuid\>${UNIQID}\<\/uuid@g fedora-guest-${I}.xml
+
+   # wesley crusher
+   sed -i s@bridge=\"virbr0\"/\>@bridge=\"ovsbr0\"/\>\<virtualport\ type=\"openvswitch\"/\>@g fedora-guest-${I}.xml
+done
+   </pre>
+   <p>Executing the steps above will take some time (mostly for copies to happen), and give you 100 files (originally, I did 0 100 for the seq, so I got 101) all ready to go. Just start the VMs, right?</p>
+   <p>Not quite. You see, none of those systems will have an IP address. <b>Sure</b>, you could log in to each one, set an IP manually, and go about your merry way. Frankly, that sucks. Human beings invented computers to get rid of these kinds of boring tasks, and we're gonna use 'em to do that! Enter: DHCP</p>
+   <p>Okay, okay, I know. You know how to setup a dhcp server, right? After all, just install the <b>dhcpd</b> package, edit the <i>/etc/dhcp/dhcpd.conf</i> file and give a block like so:</p>
+   <pre>
+option domain-name ".vmworld";
+
+subnet 172.31.110.0 netmask 255.255.255.0 {
+   range dynamic-bootp 172.31.110.100 172.31.110.200;
+   option broadcast-address 172.31.110.255;
+   option routers 172.31.110.1;
+}
+   </pre>
+   <p>And, sure, you definitely know that you can bring up your bridge interface like so, and have dhcp getting served, with a route to the internet:</p>
+   <pre>
+ip link set ovsbr0 up
+ip addr add 172.31.110.1/24 dev ovsbr0
+echo "1" > /proc/sys/net/ipv4/ip_forward
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+   </pre>
+   <p>And, yeah, you could put that in some kind of startup script. All that stuff is outside the scope of this blog post, so I won't hear of it! Instead, I'll give you a hint on how to start all of your VMs: <code>for I in $(seq 0 99); do virsh create fedora-guest-${I}.xml && sleep 25 && echo "next.."; done</code>. The sleep is there to let the dhcp service actually handle the boxes without massive amounts of UDP timeouts (and there will be if you hammer the box with 100 VMs at once).</p>
+   <p>If all goes well, you should see 100 VMs chugging away, and responding to pings.</p>
+   </div>
+</div>
