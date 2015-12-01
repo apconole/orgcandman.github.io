@@ -24,20 +24,20 @@ image: none.jpg
    <p>Instead, we'll go to the land of oz. Get a clone of <a href="https://github.com/clalancette/oz">https://github.com/clalancette/oz</a> (<code>git clone https://github.com/clalancette/oz</code>), and either run 'make rpm' or 'make deb'. Following the bouncing prompts to ensure that your full system dependencies are installed, and you are almost ready.</p>
    <p>When you've got the above satisfied, you'll want to write up a TDL of the VM image you're going to build. 'oz' supports Fedora, so that's what I'm going to use. It also supports Ubuntu, CentOS, etc. So feel free to use whatever your heart desires. The important thing is the TDL, so here's mine:</p>
    <pre>
-<template>
-  <name>fedora-guest</name>
-  <description>Fedora - 64-bit</description>
-  <os>
-    <name>Fedora</name>
-    <version>23</version>
-    <arch>x86_64</arch>
-    <rootpw>ROOTPW</rootpw>
-    <install type="iso">
-        <iso>http://dl.fedoraproject.org/pub/fedora/linux/releases/23/Server/x86_64/iso/Fedora-Server-DVD-x86_64-23.iso</iso>
-    </install>
-  </os>
-  <description>Fedora 23 guest (server base)</description>
-</template>
+&lt;template&gt;
+  &lt;name&gt;fedora-guest&lt;/name&gt;
+  &lt;description&gt;Fedora - 64-bit&lt;/description&gt;
+  &lt;os&gt;
+    &lt;name&gt;Fedora&lt;/name&gt;
+    &lt;version&gt;23&lt;/version&gt;
+    &lt;arch&gt;x86_64&lt;/arch&gt;
+    &lt;rootpw&gt;ROOTPW&lt;/rootpw&gt;
+    &lt;install type="iso"&gt;
+        &lt;iso&gt;http://dl.fedoraproject.org/pub/fedora/linux/releases/23/Server/x86_64/iso/Fedora-Server-DVD-x86_64-23.iso&lt;/iso&gt;
+    &lt;/install&gt;
+  &lt;/os&gt;
+  &lt;description&gt;Fedora 23 guest (server base)&lt;/description&gt;
+&lt;/template&gt;
    </pre>
    <p>In this example, I'm using ROOTPW as my root password, and Fedora 23 Server as the base distro. Feel free to customize the passwords (and distribution), but YMMV.</p>
    <p>Now, I will run <code>oz-install -d3 fedora-23.tdl -x /tmp/fedora-guest.txml</code>. This does the install. Over the network. So get some coffee, tea, liquor, or whatever you desire. Do a jig. Take up salsa dancing. You've got some time to pass.</p>
