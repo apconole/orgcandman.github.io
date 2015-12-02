@@ -13,7 +13,7 @@ image: none.jpg
 
 <div class="row">
    <div class="span9 columns">
-   <h2>So, there's this bug, right?</h2>
+   <h2>So, there's this bug, right? <b>Updated with more information</b></h2>
    <p>On October 23, 2015, Joe Talerico posted a bug to the OVS mailing list (<a href="http://openvswitch.org/pipermail/discuss/2015-October/019163.html">here</a>) describing a problem using the recirc actions over a balance-tcp bond link with 100 VMs.</p>
    <p>100 VMs happens to be quite a few; I wanted to replicate and fix this ovs issue. First, because having 100 VMs running and doing things is way cool. Second, because I want to fix issues in OVS (I'm nice like that). It sounds daunting enough, but turns out getting to 100VMs all interconnected with OVS is much simpler than it looks on paper.</p>
    <p>For this task, you will need:<ol><li>A linux server with at least 12 cores (I had 24), 40G of memory, and 200G of free HDD space</li><li>Open vSwitch v. 2.4.0 at least</li><li>libvirt and qemu-kvm</li><li>oz-install</li></ol></p>
@@ -54,8 +54,9 @@ do
    # setup a name
    sed -i s@fedora-guest@fedora-guest-${I}@g fedora-guest-${I}.xml
 
-   # If a macaddress field is configured, remove it
-   sed -i 's@<mac address=".*"/>@@g' fedora-guest-${I}.xml
+   # Use a random mac address instead
+   MACADDR=$(hexdump -n3 -e'/3 "52:60:2F" 3/1 ":%02X"' /dev/random)
+   sed -i s@\<mac\ address=\".*\"/\>@\<mac\ address=\"${MACADDR}\"/\>@g fedora-guest-${I}.xml
 
    # Set a new UUID for this VM
    UNIQID=$(uuid)
@@ -86,5 +87,21 @@ iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
    </pre>
    <p>And, yeah, you could put that in some kind of startup script. All that stuff is outside the scope of this blog post, so I won't hear of it! Instead, I'll give you a hint on how to start all of your VMs: <code>for I in $(seq 0 99); do virsh create fedora-guest-${I}.xml && sleep 25 && echo "next.."; done</code>. The sleep is there to let the dhcp service actually handle the boxes without massive amounts of UDP timeouts (and there will be if you hammer the box with 100 VMs at once).</p>
    <p>If all goes well, you should see 100 VMs chugging away, and responding to pings.</p>
+   <p><b>Update</b>: Not good enough, right? Okay I updated the script to fix mac-addresses. We don't strip them completely, we use <i>/dev/random</i> to construct the lower 3 octets for mac address. And one last thing - want to connect to all of them and get a readout? <code>easy_install paramiko</code>, and run the following python script:</p>
+   <pre>
+#!/usr/bin/env python
+import paramiko
+
+ADDR_PREFIX='172.31.110'
+OCTET_START=100
+
+for machine in range(0,101):
+	ssh=paramiko.SSHClient()
+	ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+	octet = OCTET_START + machine
+	ssh.connect('%s.%d' % (ADDR_PREFIX, octet), username='root', password='fedora')
+	stdin,stdout,stderr=ssh.exec_command('uname -a')
+	print 'Machine .%d: %s' % (octet, stdout.read())
+   </pre>
    </div>
 </div>
