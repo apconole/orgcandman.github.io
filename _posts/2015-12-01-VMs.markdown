@@ -88,7 +88,7 @@ iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
    <p>And, yeah, you could put that in some kind of startup script. All that stuff is outside the scope of this blog post, so I won't hear of it! Instead, I'll give you a hint on how to start all of your VMs: <code>for I in $(seq 0 99); do virsh create fedora-guest-${I}.xml && sleep 25 && echo "next.."; done</code>. The sleep is there to let the dhcp service actually handle the boxes without massive amounts of UDP timeouts (and there will be if you hammer the box with 100 VMs at once).</p>
    <p>If all goes well, you should see 100 VMs chugging away, and responding to pings.</p>
    <p><b>Update</b>: Not good enough, right? Okay I updated the script to fix mac-addresses. We don't strip them completely, we use <i>/dev/random</i> to construct the lower 3 octets for mac address. And one last thing - want to connect to all of them and get a readout? <code>easy_install paramiko</code>, and run the following python script:</p>
-   <pre>
+   <pre class="prettyprint">
 #!/usr/bin/env python
 import paramiko
 
