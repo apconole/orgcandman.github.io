@@ -99,7 +99,7 @@ for machine in range(0,101):
 	ssh=paramiko.SSHClient()
 	ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 	octet = OCTET_START + machine
-	ssh.connect('%s.%d' % (ADDR_PREFIX, octet), username='root', password='fedora')
+	ssh.connect('%s.%d' % (ADDR_PREFIX, octet), username='root', password='ROOTPW')
 	stdin,stdout,stderr=ssh.exec_command('uname -a')
 	print 'Machine .%d: %s' % (octet, stdout.read())
    </pre>
