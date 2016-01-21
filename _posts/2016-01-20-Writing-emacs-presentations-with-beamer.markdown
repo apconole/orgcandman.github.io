@@ -83,6 +83,14 @@ Org mode is neat, and org-exports are neat, TOO.
 
 - don't you want more posts?
 
+  - like one on images
+
+  - or one on pictures
+
+  - With S_{u}b_{t}e_{x}t[fn:: Foot Notes]
+
+  - Formulas \(a=b+c-d\)
+
 *** Idea block two
 
 #+begin_src python
@@ -91,10 +99,17 @@ from ideas import new_ideas
 def fun(idea):
    new_ideas.append(idea)
 #+end_src
+
+* By the way
+
+** You too can import an image
+
+[[./bob_the_builder.png]]
        </pre>
        <p>Just save that into your org file, and now run the super secret <code>M-x org-export-dispatch</code> (as an aside, the default keybind for this action is <i>C-c C-e</i>). In that menu, notice the LaTeX header (should be [l]). Selecting that (by pressing [l]), opens the submenu which has <b>Export to LaTeX (Beamer)</b>, and other associated options. Go ahead, press the key for Export and Open PDF. You should see a sweet first presentation.</p>
        <p>From this point, you can customize lots of things. Want to change the theme to <i>Antibes</i>? Go right ahead. Just change that variable, and re-export. Want to mess with the color scheme? Just add <code>#+BEAMER_COLOR_THEME: spruce</code> (or crane) to the header block. There are a ton of additional options, and you can mess around with how you want the look and feel to be, even on a per-page basis.</p>
        <p>Okay, okay. You want more themes, right? After all, this stuff is amazingly good - and getting extra themes for more choices seems like a no brainer. Okay, here's the last trick up my sleeve. Grab yourself the simple soothing Fedora theme from the <a href="https://fedoraproject.org/wiki/Templates_for_Presentations">Fedora wiki</a>, and grab the <a href="http://melmorabity.fedorapeople.org/latex/beamer/beamer-laughlin/beamer-laughlin.zip">Laughlin</a> theme. Unzip those contents to the <b>~/texmf</b> directory, and run <code>mktexlsr ~/texmf/</code>. Presto - instant new template! Just update your BEAMER header.</p>
+       <p>By the way, you can download my sample presentation at <a href="https://orgcandman.github.io/extras/presentation-sample.pdf">this link</a> to see how it comes out with the above settings.</p>
        <p>Hopefully, this post helps you write amazing presentations without disrupting your precious date nights.</p>
    </div>
 </div>
