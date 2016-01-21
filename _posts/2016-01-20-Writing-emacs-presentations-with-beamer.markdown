@@ -29,6 +29,7 @@ image: none.jpg
 (setq org-export-allow-bind-keywords t)
 (setq org-latex-listings 'minted)
 (add-to-list 'org-latex-packages-alist '("" "minted"))
+(org-babel-do-load-languages 'org-babel-load-languages '((sh . t) (python . t) (C . t) (ruby . t) (js . t)))
 (setq org-latex-pdf-process
       '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
         "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
@@ -84,7 +85,7 @@ Org mode is neat, and org-exports are neat, TOO.
 
 *** Idea block two
 
-#+begin_src :python
+#+begin_src python
 from ideas import new_ideas
 
 def fun(idea):
