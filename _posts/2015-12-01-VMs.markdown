@@ -36,11 +36,10 @@ image: none.jpg
         &lt;iso&gt;http://dl.fedoraproject.org/pub/fedora/linux/releases/23/Server/x86_64/iso/Fedora-Server-DVD-x86_64-23.iso&lt;/iso&gt;
     &lt;/install&gt;
   &lt;/os&gt;
-  &lt;description&gt;Fedora 23 guest (server base)&lt;/description&gt;
 &lt;/template&gt;
    </pre>
    <p>In this example, I'm using ROOTPW as my root password, and Fedora 23 Server as the base distro. Feel free to customize the passwords (and distribution), but YMMV.</p>
-   <p>Now, I will run <code>oz-install -d3 fedora-23.tdl -x /tmp/fedora-guest.txml</code>. This does the install. Over the network. So get some coffee, tea, liquor, or whatever you desire. Do a jig. Take up salsa dancing. You've got some time to pass.</p>
+   <p>Now, I will run <code>oz-install -d3 fedora-23.tdl -x fedora-guest.txml</code>. This does the install. Over the network. So get some coffee, tea, liquor, or whatever you desire. Do a jig. Take up salsa dancing. You've got some time to pass.</p>
    <p>After glaciers melt, you should be left with a <i>fedora-guest.txml</i> in the current working directory, and <i>fedora-guest.dsk</i> file in <b>/var/lib/libvirt/images/</b>. Run <code>mkdir -p /home/100vms</code> and change to that directory.</p>
    <p>You need to setup 100 Fedora-guest xml files, and have 100 unique disks. We won't put them in /var (because I have a separate /home partition for this), we'll put them in CWD (which should be <i>/home/100vms</i>, right?) and fix them up. The following snippet of code will set up each VM to run on port Open vSwitch bridge ovsbr0 (change the flavor, etc).</p>
    <pre class="prettyprint">
