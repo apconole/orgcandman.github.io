@@ -1,4 +1,44 @@
+title: Aaron's Musings
+tagline: Random thoughts from a codemonkey
+author:
+   name: Aaron Conole
+   givenName: Aaron
+   familyName: Conole
+   twitter: orgcandman
+   github: orgcandman
+   email: aconole@bytheb.org
+url: http://orgcandman.github.io
+
+username: orgcandman
+repo: orgcandman.github.io
+
+gems:
+  - jekyll-pandoc
+
+encoding: utf-8
+
 auto: true
-markdown: rdiscount
-pygments: true
-permalink: /blog/:title
+markdown: pandoc
+markdown_ext: markdown,md
+pandoc:
+  extensions:
+    - smart
+    - mathjax
+permalink: /blog/:year/:month/:dat/:title.html
+redirects: yes
+pageviews: no
+twitter_api: yes
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - Rakefile
+  - .travis.yml
+  - _posts/*.Rmd
+  - _posts/source
+  - assets/_bootstrap-3.1.1
+  - Dockerfile
+  - build.R
+  - _cache
+  - Makefile
+  - fig.yml

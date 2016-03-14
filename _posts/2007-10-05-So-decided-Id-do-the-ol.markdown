@@ -11,34 +11,68 @@ summary: My first ever blog post
 image: none.jpg
 ---
 
-<div class="row">
-   <div class="span9 columns">
-      <h2>First Internet Entry</h2>
-      <p> So, decided I'd do the 'ol blog thing. I'm gonna try to update this at least once a week with random thoughts, comments, and opinions (many of which will be wrong) on software development, and engineering.</p>
-      <p>As I write this first entry, I reflect on the many firsts upon which I am currently embarking. I'm leaving my job at Airvana, Inc. to accept a position at another Chelmsford, MA based company. I'm finishing up my first heap management package (not open sourced...I'd like to keep a few things up my sleeve for later) and I'm trying a $5 bottle of Fiji water (free at the company as a sampler).</p>
-      <p>The water isn't bad; the package at the new job isn't bad, and certainly a constant time heap isn't bad. All in all, lots of good that I hope continue.</p>
-      <p>And now for a bit of code, and some musings.</p>
-      <p>A while ago, I was interested in attaining the backtrace of a particular stack address. I could use the gnu backtrace() routine, but that carries with it, a few issues:</p>
-      <ol>
-      <li>It does an internal malloc (not so good when you want a backtrace after running out of memory)</li>
-      <li>Because it then touches the memory it allocates, it'll potentially cause a pagefault (suspeds the entire process, including all threads)</li>
-      <li>isn't supported on all platforms anyway</li>
-      </ol>
-      <p>So, I decided I'd use a little trick to get the frames prior. This isn't exactly portable, but it should work on linux for most architectures. You may have to play with the math a bit to get the correct previous frame addr.</p>
-      <p>First, we can tell where we currently are by getting a stack variable address. This means that if we have a function:</p>
-      <code>int foo(int someVar)</code>
-      <p>and inside that function, we do:</p>
-      <code>unsigned char *stackAddr = (unsigned char *)&someVar;</code>
-      <p>stackAddr will contain the address of that variable within the frame. This is great for knowing where in the frame we are, but we really care about the return address which sits at the bottom (or top depending on your nomenclature) of the frame. Since stacks grow upwards, we know that the return pointer exists somewhere before our current location. We'll be subtracting from the address.</p>
-      <p>In order to correctly align the pointer for the linux stack, we need to know how the linux stack frame looks. According to <a href="http://math-atlas.sourceforge.net/devel/atlas_contrib/node93.html">http://math-atlas.sourceforge.net/devel/atlas_contrib/node93.html</a>, the frame on my system is laid out such that:</p>
-      <ol>
-          <li><u>offset 0</u> - The ptr to the callee address frame</li>
-          <li><u>offset 4</u> - The link register save location</li>
-          <li><u>offset 8</u> - The parameter area</li>
-      </ol>
-      <p>This means that in our example above, we're currently pointing to offset 8. Going back 8 bytes then should get us to the ptr to the callee address frame.</p>
-      <p>So, lets write a quick 'n dirty test function, and use gdb to check on the results.</p>
-      <pre>
+First Internet Entry
+--------------------
+
+So, decided I'd do the 'ol blog thing. I'm gonna try to update this at
+least once a week with random thoughts, comments, and opinions (many
+of which will be wrong) on software development, and engineering.
+
+As I write this first entry, I reflect on the many firsts upon which I
+am currently embarking. I'm leaving my job at Airvana, Inc. to accept a
+position at another Chelmsford, MA based company. I'm finishing up my
+first heap management package (not open sourced...I'd like to keep a 
+few things up my sleeve for later) and I'm trying a $5 bottle of Fiji
+water (free at the company as a sampler).
+
+The water isn't bad; the package at the new job isn't bad, and certainly
+a constant time heap isn't bad. All in all, lots of good that I hope continue.
+
+A bit of code, and some coolness
+--------------------------------
+
+A while ago, I was interested in attaining the backtrace of a particular 
+stack address. I could use the gnu backtrace() routine, but that carries 
+with it, a few issues:
+
+* It does an internal malloc (not so good when you want a backtrace after
+  running out of memory)
+* Because it then touches the memory it allocates, it'll potentially cause 
+  a pagefault (suspeds the entire process, including all threads)
+* isn't supported on all platforms anyway
+
+So, I decided I'd use a little trick to get the frames prior. This isn't
+exactly portable, but it should work on linux for most architectures. You 
+may have to play with the math a bit to get the correct previous frame addr.
+Also, some architectures (notable mips and alpha) just won't work.
+
+First, we can tell where we currently are by getting a stack variable 
+address. This means that if we have a function: 
+<code>int foo(int someVar)</code>. Inside that function, we add: 
+<code>unsigned char *stackAddr = (unsigned char *)&someVar;</code>
+
+*stackAddr* will contain the address of that variable within the frame. This is
+great for knowing where in the frame we are, but we really care about the return
+address which sits at the bottom (or top depending on your nomenclature) of the
+frame. Since stacks grow upwards, we know that the return pointer exists 
+somewhere before our current location. We'll be subtracting from the address.
+
+In order to correctly align the pointer for the linux stack, we need to know how
+the linux stack frame looks. According to [http://math-atlas.sourceforge.net/devel/atlas_contrib/node93.html](math-atlas), the frame on my system is laid out such
+that:
+
+| offset  | Description of the offset           |
+|   0     | The ptr to the callee address frame |
+|   4     | The link register save location     |
+|   8     | The parameter area                  |
+
+This means that in our example above, we're currently pointing to offset 8. 
+Going back 8 bytes then should get us to the ptr to the callee address frame.
+
+So, lets write a quick 'n dirty test function, and use gdb to check on the
+results.
+
+<pre class="prettyprint">
 int backtrace_test(int nFrameParameterOffset)
 {
 unsigned char *pStackPtr = (unsigned char *)&nFrameParameterOffset;
@@ -55,26 +89,43 @@ int main()
 {
 return backtrace_test(1234);
 }
-      </pre>
-      <p>Compile with: <i>gcc -g -o backtrace_test backtrace_test.c</i></p>
-      <p>Running this produces the following:</p>
-      <pre>aconole@linuxws220 /localhome/aconole/bt-test
+</pre>
+
+Compile with: *gcc -g -o backtrace_test backtrace_test.c*
+
+Running this produces the following:
+<pre>
+aconole@linuxws220 /localhome/aconole/bt-test
 $./backtrace_test
-address of callee [0xbffff618] points to [bffff648]</pre>
-      <p>Under gdb, if we look at these values, we'll notice that at *0xbffff64c* (4 bytes ahead of the frame to which we are pointed) we see (*0x080483ee*). Attempting to disassemble this address (_disas 0x080483ee_) puts us at the return address after the call to _init. Looks like we're getting a clue as to the stack workings. Let's put in another frame and see what we get. We'll add the following to our code:</p>
-      <code>
+address of callee [0xbffff618] points to [bffff648]
+</pre>
+
+Under gdb, if we look at these values, we'll notice that at *0xbffff64c* 
+(4 bytes ahead of the frame to which we are pointed) we see (*0x080483ee*). 
+Attempting to disassemble this address (_disas 0x080483ee_) puts us at the
+return address after the call to _init. Looks like we're getting a clue as to
+the stack workings. Let's put in another frame and see what we get. We'll add
+the following to our code:
+
+<pre class="pretttprint">
 int foo(int bar)
 {
 return backtrace_test(bar);
 }
-      </code>
-      <p>And we'll change main to call foo.<br/>The new result is:</p>
-      <pre>
+</pre>
+
+And we'll change main to call foo. The new result is:
+
+<pre>
 aconole@linuxws220 /localhome/aconole/bt-test
 $./backtrace_test
 address of callee [0xbffff5f8] points to [bffff618]</pre>
-      <p>Notice, instead of *0xbffff618* pointing to *0xbffff648*, we have *0xbffff5f8* pointing to *0xbffff618*. The extra frame is at *0xbffff5f8*! Lets follow the rest of the frames in gdb:</p>
-      <pre>
+
+Notice, instead of *0xbffff618* pointing to *0xbffff648*, we have *0xbffff5f8*
+pointing to *0xbffff618*. The extra frame is at *0xbffff5f8*! Lets follow the
+rest of the frames in gdb:
+
+<pre>
 (gdb) p/x *0xbffff618
 $2 = 0xbffff638
 (gdb) p/x *0xbffff638
@@ -83,9 +134,13 @@ $3 = 0xbffff668
 $4 = 0xbffff6c8
 (gdb) p/x *0xbffff6c8
 $5 = 0x0
-      </pre>
-      <p>We can see that all the frames link back until we hit 0. If we look at *0xbffff61c* now (4 bytes after the callee ptr), we see *0x80483b7*. gdb gives us more information:</p>
-      <pre>
+</pre>
+
+We can see that all the frames link back until we hit 0. If we look at
+*0xbffff61c* now (4 bytes after the callee ptr), we see *0x80483b7*. gdb 
+gives us more information:
+
+<pre>
 (gdb) disassemble 0x80483b7
 Dump of assembler code for function foo:
 0x080483a6 : push %ebp
@@ -99,10 +154,13 @@ Dump of assembler code for function foo:
 0x080483bb : ret
 End of assembler dump.
 (gdb)
-      </pre>
-      <p>Success! *0x80483b7* is the bolded line. It's the return address inside foo!</p>
-      <p>We know two things now: Following the return register back will give us all the frames (until we hit frame 0), and 4 bytes after the callee ptr, the link register gives us the program counter for the frame. Let's write a stack dumper function which will give us a simple stack trace:</p>
-      <pre>
+</pre>
+
+Success! *0x80483b7* is the bolded line. It's the return address inside foo!
+
+We know two things now: Following the return register back will give us all the frames (until we hit frame 0), and 4 bytes after the callee ptr, the link register gives us the program counter for the frame. Let's write a stack dumper function which will give us a simple stack trace:
+
+<pre class="prettyprint">
 unsigned int *dumpAllFrames(unsigned int nFramesMax)
 {
 unsigned char *pStackAddrPtr = (unsigned char *)&nFramesMax;
@@ -122,19 +180,21 @@ nFramesMax--;
 
 return pFramePointer;
 }
-      </pre>
-      <p>and call that from within backtrace_test.</p>
-      <p>The results:</p>
-      <pre>
+</pre>
+
+and call that from within backtrace_test. The results:
+<pre>
 $./backtrace_test
 Current Frame=<0xbffff5d8>, Next Frame=<0xbffff5f8>, PC=<0x80483d2>
 Current Frame=<0xbffff5f8>, Next Frame=<0xbffff618>, PC=<0x80483ed>
 Current Frame=<0xbffff618>, Next Frame=<0xbffff648>, PC=<0x804841b>
 Current Frame=<0xbffff648>, Next Frame=<0xbffff6a8>, PC=<0x418de3>
 Current Frame=<0xbffff6a8>, Next Frame=<0x0>, PC=<0x80482e1>
-      </pre>
-      <p>And using gdb:</p>
-      <pre>
+</pre>
+
+And using gdb:
+
+<pre>
 (gdb) disas 0x80483d2
 Dump of assembler code for function backtrace_test:
 0x080483c2 : push %ebp
@@ -198,10 +258,17 @@ Dump of assembler code for function _start:
 0x080482e2 <_start+34>: nop
 0x080482e3 <_start+35>: nop
 End of assembler dump.
-      </pre>
-      <p>As you can see, we don't have the frame before main(). I didn't include that because it is most likely part of some runtime generated code, and therefore we can't actually get it. However, we do see that every other frame is accounted for. We can see exactly where in memory we are, and we should be able to use this information to dump a stack wherever we choose, without the issues with gnu backtrace().</p>
-      <p>A word of caution: This has only been tested on cygwin, powerpc and x86 (32-bit) linux. This will be broken on 64-bit systems, and MIPS / AXP systems (which don't always put addresses in stack space).</p>
-   </div>
-</div>
+</pre>
+
+As you can see, we don't have the frame before main(). I didn't include that 
+because it is most likely part of some runtime generated code, and therefore 
+we can't actually get it. However, we do see that every other frame is
+accounted for. We can see exactly where in memory we are, and we should be 
+able to use this information to dump a stack wherever we choose, without the 
+issues with gnu backtrace().
+
+A word of caution: This has only been tested on cygwin, powerpc and x86 
+(32-bit) linux. This will be broken on 64-bit systems, and MIPS / AXP
+systems (which don't always put addresses in stack space).
 
 

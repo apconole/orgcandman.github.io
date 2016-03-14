@@ -1,23 +1,25 @@
 ---
-layout: nil
+title : Atom Feed
+redirects: [feed, wordpress/feed]
 ---
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>Aaron's Musings</title>
-  <link href="http://orgcandman.github.io/atom.xml" rel="self"/>
-  <link href="http://orgcandman.github.io/" />
+  <link href="/atom.xml" rel="self"/>
+  <link href="/" />
   <updated>{{ site.time | date_to_xmlschema }}</updated>
-  <id>http://orgcandman.github.io</id>
+  <id>{{ site.url }}</id>
   <author>
-    <name>Aaron Conole</name>
+   <name>{{ site.author.name }}</name>
+   <email>{{ site.author.email }}</email>
   </author>
 
   {% for post in site.posts %}
   <entry>
     <title>{{ post.title }}</title>
-    <link href="http://orgcandman.github.io{{ post.url }}"/>
+    <link href="{{ post.url }}"/>
     <updated>{{ post.date | date_to_xmlschema }}</updated>
-    <id>http://orgcandman.github.io{{ post.id }}</id>
+    <id>{{ post.id }}</id>
     <content type="html">{{ post.content | xml_escape }}</content>
   </entry>
   {% endfor %}

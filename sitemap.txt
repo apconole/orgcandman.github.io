@@ -1,0 +1,8 @@
+---
+title: sitemap
+---
+{%for page in site.pages %}
+http://orgcandman.github.io{{ page.url }} {% endfor %}
+
+{%for post in site.posts %}
+http://orgcandman.github.io{{ post.url }} {% endfor %}
