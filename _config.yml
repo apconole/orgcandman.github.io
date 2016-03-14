@@ -17,8 +17,7 @@ gems:
 
 encoding: utf-8
 
-auto: true
-markdown: pandoc
+markdown: rdiscount
 markdown_ext: markdown,md
 pandoc:
   extensions:

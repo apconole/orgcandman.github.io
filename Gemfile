@@ -29,3 +29,5 @@ gem "garb" #, "~> 0.9.8"    # Google Analytics API
 ## For mendeley, not working, plugin off
 #gem "faraday"
 #gem "faraday_middleware"
+
+gem "github-pages"

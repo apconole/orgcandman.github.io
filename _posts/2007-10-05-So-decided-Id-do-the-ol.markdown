@@ -46,11 +46,9 @@ exactly portable, but it should work on linux for most architectures. You
 may have to play with the math a bit to get the correct previous frame addr.
 Also, some architectures (notable mips and alpha) just won't work.
 
-First, we can tell where we currently are by getting a stack variable 
-address. This means that if we have a function: 
-<code>int foo(int someVar)</code>. Inside that function, we add: 
-<code>unsigned char *stackAddr = (unsigned char *)&someVar;</code>
-
+First, we can tell where we currently are by getting a stack variable address. 
+This means that if we have a function `int foo(int someVar)`, and inside that
+function, we add `unsigned char *stackAddr = (unsigned char *)&someVar;`, 
 *stackAddr* will contain the address of that variable within the frame. This is
 great for knowing where in the frame we are, but we really care about the return
 address which sits at the bottom (or top depending on your nomenclature) of the
@@ -58,10 +56,11 @@ frame. Since stacks grow upwards, we know that the return pointer exists
 somewhere before our current location. We'll be subtracting from the address.
 
 In order to correctly align the pointer for the linux stack, we need to know how
-the linux stack frame looks. According to [http://math-atlas.sourceforge.net/devel/atlas_contrib/node93.html](math-atlas), the frame on my system is laid out such
+the linux stack frame looks. According to [math-atlas](http://math-atlas.sourceforge.net/devel/atlas_contrib/), the frame on my system is laid out such
 that:
 
 | offset  | Description of the offset           |
+| ------- | ----------------------------------- |
 |   0     | The ptr to the callee address frame |
 |   4     | The link register save location     |
 |   8     | The parameter area                  |
@@ -72,24 +71,25 @@ Going back 8 bytes then should get us to the ptr to the callee address frame.
 So, lets write a quick 'n dirty test function, and use gdb to check on the
 results.
 
-<pre class="prettyprint">
+```prettyprint
 int backtrace_test(int nFrameParameterOffset)
 {
-unsigned char *pStackPtr = (unsigned char *)&nFrameParameterOffset;
-unsigned int *pCalleePtr = 0;
+    unsigned char *pStackPtr = (unsigned char *)&nFrameParameterOffset;
+    unsigned int *pCalleePtr = 0;
 
-pStackPtr -= 8; //this will back us up to the callee ptr
-pCalleePtr = (unsigned int *)pStackPtr;
+    pStackPtr -= 8; //this will back us up to the callee ptr
+    pCalleePtr = (unsigned int *)pStackPtr;
 
-printf("address of callee [%p] points to [%x]\n", pCalleePtr, *pCalleePtr);
-return 0;
+    printf("address of callee [%p] points to [%x]\n", pCalleePtr, *pCalleePtr);
+    return 0;
 }
 
 int main()
 {
-return backtrace_test(1234);
+    return backtrace_test(1234);
 }
 </pre>
+```
 
 Compile with: *gcc -g -o backtrace_test backtrace_test.c*
 
@@ -107,19 +107,20 @@ return address after the call to _init. Looks like we're getting a clue as to
 the stack workings. Let's put in another frame and see what we get. We'll add
 the following to our code:
 
-<pre class="pretttprint">
+```prettyprint
 int foo(int bar)
 {
-return backtrace_test(bar);
+    return backtrace_test(bar);
 }
-</pre>
+```
 
 And we'll change main to call foo. The new result is:
 
 <pre>
 aconole@linuxws220 /localhome/aconole/bt-test
 $./backtrace_test
-address of callee [0xbffff5f8] points to [bffff618]</pre>
+address of callee [0xbffff5f8] points to [bffff618]
+</pre>
 
 Notice, instead of *0xbffff618* pointing to *0xbffff648*, we have *0xbffff5f8*
 pointing to *0xbffff618*. The extra frame is at *0xbffff5f8*! Lets follow the
@@ -160,27 +161,26 @@ Success! *0x80483b7* is the bolded line. It's the return address inside foo!
 
 We know two things now: Following the return register back will give us all the frames (until we hit frame 0), and 4 bytes after the callee ptr, the link register gives us the program counter for the frame. Let's write a stack dumper function which will give us a simple stack trace:
 
-<pre class="prettyprint">
+```prettyprint
 unsigned int *dumpAllFrames(unsigned int nFramesMax)
 {
-unsigned char *pStackAddrPtr = (unsigned char *)&nFramesMax;
-unsigned int *pFramePointer = 0;
+    unsigned char *pStackAddrPtr = (unsigned char *)&nFramesMax;
+    unsigned int *pFramePointer = 0;
 
-pStackAddrPtr -= 8;
+    pStackAddrPtr -= 8;
 
-pFramePointer = (unsigned int *)pStackAddrPtr; //at this point we have the stack list
+    pFramePointer = (unsigned int *)pStackAddrPtr; //at this point we have the stack list
 
-while(pFramePointer && nFramesMax)
-{
-printf("Current Frame=<%p>, Next Frame=<0x%x>, PC=<0x%x>\n",
-pFramePointer, *pFramePointer, *(pFramePointer+1));
-pFramePointer = (unsigned int *)*pFramePointer;
-nFramesMax--;
+    while(pFramePointer && nFramesMax) {
+        printf("Current Frame=<%p>, Next Frame=<0x%x>, PC=<0x%x>\n",
+        pFramePointer, *pFramePointer, *(pFramePointer+1));
+        pFramePointer = (unsigned int *)*pFramePointer;
+        nFramesMax--;
+    }
+
+    return pFramePointer;
 }
-
-return pFramePointer;
-}
-</pre>
+```
 
 and call that from within backtrace_test. The results:
 <pre>
