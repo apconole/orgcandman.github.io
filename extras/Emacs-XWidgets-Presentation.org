@@ -1,0 +1,197 @@
+#+TITLE: XWidgets+WebKit Feature Preview
+#+AUTHOR: Aaron Conole <aconole@bytheb.org>
+#+DATE: PGP Fingerprint: 8A3A BFD0 C4B4 C9C6 04BC  38BD 6A6C DB79 1F9D 4E22
+#+DESCRIPTION: In this talk, we will cover the XWidgets work that has been merged into Emacs master. We’ll go over the build options and dependencies to enable XWidgets, some of the Elisp calls required to view a page using webkit, and what the future might look like. Finally, a live demo of webkit browsing within Emacs will be shown.
+#+KEYWORDS: xwidgets webkit elisp compiling
+#+LANGUAGE:  en
+#+OPTIONS:   H:2 num:nil ^:{} toc:nil email:nil
+#+LaTeX_CLASS_OPTIONS: [presentation]
+#+BEAMER_THEME: metropolis
+#+BEAMER_COLOR_THEME: solarized
+#+EXCLUDE_TAGS: noexport
+# Uncomment the following to disable evaluation
+# #+PROPERTY:  header-args :eval no
+
+* Introduction
+
+** Thanks to...
+
+- The emacs community.
+
+- Thoughtbot
+
+- Red Hat
+
+** Who am I?
+
+- Aaron Conole
+
+- Software developer at Red Hat
+
+- User of emacs since 2001 (techincally XEmacs)
+
+* Quick Bit of Background
+
+** What is XWidets?
+
+- Allows embedding certain gtk widgets in the emacs buffer display
+
+- Among those, the gtk widget for the WebKit browser
+
+- Developed by Joakim Verona (for the past few years)
+
+** What is WebKit?
+
+- Fork of KHTML and KJS, developed by Apple and Google
+
+- Powers Chrome and Safari
+
+- Exported to GTK widgets
+
+** Why do we want this in Emacs?
+
+- "Because it's cool" isn't good enough?
+
+- For the few of us who use gnus, it does let us view HTML emails
+
+  - but I hate HTML emails, so it doesn't help me
+
+- When the integration gets better, I imagine web development to feel more natural.
+
+- Who doesn't want to watch youtube videos in their emacs session?
+
+* Building Emacs with XWidgets Support
+** WARNING: Here be dragons
+
+- At this time (May 2016), xwidgets is an early preview
+
+  - That means that while the framework is pretty stable, it 
+    isn't integrated with emacs in an 'organic feeling' way.
+
+- You can (and will) run into strange issues because it's bleeding edge
+
+  - But what's life without strange issues?
+
+- It might not even work 100% for you
+
+  - But 60% of the time it might work every time. --Brian Fantana
+
+** My First Compilation (Simple Steps)
+
+1. Obtain the latest, bleeding edge sources via git
+
+2. Get all the dependencies for building with webkit.
+
+3. Build it!
+
+4. ???
+
+5. Try out xwidgets
+
+** Step 1
+
+This part is simple.
+
+#+name: obtainemacs
+#+begin_src sh
+mkdir -p ~/git
+git clone git://git.savannah.gnu.org/emacs.git ~/git/emacs
+#+end_src
+
+** Step 1 Results :noexport:
+
+#+RESULTS: obtainemacs
+
+** Step 2
+
+This part depends on your system. The slide-deck contains many options, but
+I'm going to skip through them quickly. Read the slides for your specific
+system (or infer it by looking at which packages are getting installed, and
+fixing up the names for your system).
+
+** Step 2: For fedora 23+
+
+#+NAME: fedbuilddeps
+#+BEGIN_SRC sh
+sudo dnf install atk-devel cairo-devel freetype-devel   \
+           fontconfig-devel dbus-devel giflib-devel     \
+           glibc-devel libpng-devel libjpeg-turbo-devel \ 
+           libjpeg-turbo libtiff-devel libX11-devel     \
+           libXau-devel libXdmcp-devel libXrender-devel \
+           libXt-devel libXpm-devel ncurses-devel       \
+           xorg-x11-proto-devel zlib-devel gnutls-devel \
+           librsvg2-devel m17n-lib-devel libotf-devel   \
+           ImageMagick-devel libselinux-devel           \
+           GConf2-devel alsa-lib-devel gpm-devel        \
+           liblockfile-devel libxml2-devel bzip2 cairo  \
+           texinfo gzip desktop-file-utils libacl-devel \
+           gtk3-devel python2-devel python3-devel       \
+           util-linux webkitgtk3 webkitgtk3-devel
+#+END_SRC
+
+** Step 2: For ubuntu 14.04LTS (NOTE: Not tested)
+
+#+NAME: ububuilddeps
+#+BEGIN_SRC sh
+sudo apt-get build-dep emacs24
+sudo apt-get install libwebkit2gtk libwebkit2gtk-dev \
+                     libwebkitgtk libwebkitgtk-dev
+#+END_SRC
+
+** Step 2: For Mac OS X (need to get access to an OS X system) :noexport:
+
+The following commands should pull in all the dependencies:
+
+** Step 3: Build that mess
+
+Unholy build process, by this incantation, arise and generate an 
+emacs suitable for consumption.
+
+#+NAME: BuildEmacs
+#+BEGIN_SRC sh
+cd ~/git/emacs
+./autogen.sh
+./configure --prefix=$HOME/emacs-xwidgets --with-gif \
+                  --with-jpeg --with-png --with-rsvg \
+                  --with-tiff --with-xft --with-xpm  \
+                  --with-x-toolkit=gtk3 --with-gpm=no \
+                  --with-dbus --with-xwidgets
+make bootstrap
+echo The next step is not strictly required
+make check
+make install
+#+END_SRC
+
+** Step 4: ???
+
+Enjoy coffee* while step 3 completes.
+
+*= could actually be beer, or anything else, really.
+   Except vim.
+   No one enjoys vim.
+
+** Step 5: EMACS
+
+The following is the magic incantation (make sure you have a display!)
+
+  =PATH=$HOME/emacs-xwidgets/bin:$PATH=
+  =emacs=
+
+* Some Fancy XWidgety things
+** My first xwidget!
+
+- At this point, can use =M-x xwidget-webkit-browse-url=
+- But you'll be severely disappointed (if you expect a 'chromium' experience)
+  - See: *preview* in the dictionary :-)
+- Going to =google.com= may be traumatizing
+  - And =https://www.google.com= is only marginally better :-)
+  - NOTE: Press 'Enter' to clear and input text into a text box.
+- We need to manually set up xwidgets objects for most of the stuff
+  we want to do.
+
+** This is an actual session
+
+[[./EmacsBrowsing.png]]
+
+** Some magical elisp tricks
+
