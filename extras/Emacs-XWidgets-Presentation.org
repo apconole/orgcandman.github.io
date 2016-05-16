@@ -58,6 +58,10 @@
 
 - When the integration gets better, I imagine web development to feel more natural.
 
+  - It lets you grab elements right out of the html DOM and work with them
+
+  - You can do lots of sweet emacs-lisp interactions (elisp as a restful service?)
+
 - Who doesn't want to watch youtube videos in their emacs session?
 
 * Building Emacs with XWidgets Support
@@ -188,10 +192,33 @@ The following is the magic incantation (make sure you have a display!)
   - NOTE: Press 'Enter' to clear and input text into a text box.
 - We need to manually set up xwidgets objects for most of the stuff
   we want to do.
+- On the plus side, there's still a lot of your normal 'emacs' navigation
+  available
 
 ** This is an actual session
 
 [[./EmacsBrowsing.png]]
 
 ** Some magical elisp tricks
+*** GNUS Webkit Email
+
+Proof of concept:
+ - https://gist.github.com/orgcandman/1e53ca99dd3899b07e5743718a1db300
+
+*** Youtube Viewing
+
+It crashed for me (YMMV)
+** Webkit Keybinds
+The default keybinds
+
+| Key | What it be doin' |
+|-----+------------------|
+| g   | Go to URL        |
+| a   | Adjust Size      |
+| b   | back             |
+| r   | reload           |
+| C-m | Insert String    |
+| w   | Get current URL  |
+| SPC | Scroll Up        |
+| DEL | Scroll Down      |
 
